@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>員工查詢：部門／英文姓名／組別</title>
-  <meta name="description" content="掃同一個 QR 進站後，輸入英文姓名即可查詢部門與組別。">
+  <title>2025 Strategic Off Site 組別查詢</title>
+  <meta name="description" content="輸入英文姓名即可看到你的組別。">
   <style>
     :root { --primary:#2b7cff; --bg:#f6f7f9; --card:#fff; --text:#111; --muted:#666; --danger:#b00020; }
     * { box-sizing: border-box; }
@@ -31,8 +31,8 @@
 <body>
   <div class="container">
     <div class="card">
-      <h1>員工資訊查詢</h1>
-      <p class="sub">掃同一個 QR code 進入此頁，輸入「英文姓名」即可看到你的部門與組別。</p>
+      <h1>2025 Strategic Off Site 組別查詢</h1>
+      <p class="sub">輸入「英文姓名」即可看到你的組別。</p>
 
       <div id="searchSection" role="form" aria-label="查詢表單">
         <label for="nameInput">英文姓名</label>
@@ -48,9 +48,10 @@
       <div id="result" style="display:none;" aria-live="polite">
         <div class="fields">
           <div class="field name" id="rName"></div>
-          <div class="field"><span class="label">部門：</span><span id="rDept"></span></div>
+          <!-- 若只顯示組別，可將「部門」這行刪除或註解 -->
+          <!-- <div class="field"><span class="label">部門：</span><span id="rDept"></span></div> -->
           <div class="field"><span class="label">組別：</span><span id="rGroup"></span></div>
-          <!-- 若你未來加上座位欄位，打開下列區塊並在 show() 中賦值
+          <!-- 若未來加上座位欄位，解除下列註解並在 show() 中賦值
           <div class="field" id="rowTable"><span class="label">桌次：</span><span id="rTable"></span></div>
           -->
         </div>
@@ -64,25 +65,17 @@
   </div>
 
   <script>
-    // 正規化字串：小寫、收斂多重空白為單一空白、修剪前後空白
     function normalize(s){ return (s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
-
     let data = [];
 
     async function loadData() {
       try {
         const res = await fetch('./data/employees.json', { cache: 'no-store' });
         data = await res.json();
-
-        // 建立 datalist 建議名單（去重並排序）
         const list = document.getElementById('nameList');
         list.innerHTML = '';
         const names = [...new Set((data || []).map(x => x.Name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-        names.forEach(n => {
-          const opt = document.createElement('option');
-          opt.value = n;
-          list.appendChild(opt);
-        });
+        names.forEach(n => { const opt = document.createElement('option'); opt.value = n; list.appendChild(opt); });
       } catch (e) {
         document.getElementById('error').textContent = '資料載入失敗，請重新整理或聯絡工作人員。';
         document.getElementById('searchBtn').disabled = true;
@@ -92,28 +85,19 @@
     function findByName(inputName) {
       const key = normalize(inputName);
       if (!key) return null;
-
-      // 1) 完全相符
       let item = data.find(x => normalize(x.Name) === key);
-      // 2) 以輸入開頭（名或姓開頭都可）
       if (!item) item = data.find(x => normalize(x.Name).startsWith(key));
-      // 3) 包含（最後容錯）
       if (!item) item = data.find(x => normalize(x.Name).includes(key));
-
       return item || null;
     }
 
     function show(item) {
-      // 顯示欄位
       document.getElementById('rName').textContent = item?.Name || '';
-      document.getElementById('rDept').textContent = item?.Department || '';
+      // 若保留部門顯示，取消下行註解
+      // document.getElementById('rDept').textContent = item?.Department || '';
       document.getElementById('rGroup').textContent = (item?.Group != null) ? String(item.Group) : '';
-
-      // 若未配置桌次，隱藏該行（保留結構以便未來開啟）
       const tableRow = document.getElementById('rowTable');
       if (tableRow) tableRow.style.display = 'none';
-      
-      // 切換區塊顯示
       document.getElementById('searchSection').style.display = 'none';
       document.getElementById('result').style.display = 'block';
     }
@@ -127,8 +111,6 @@
 
     async function init() {
       await loadData();
-
-      // 支援 URL 參數 ?name=（可選：同一 QR 也能帶參數預填）
       const params = new URLSearchParams(location.search);
       const paramName = params.get('name');
       if (paramName) {
@@ -136,21 +118,15 @@
         if (item) show(item);
         else document.getElementById('error').textContent = '找不到這個名字，請確認拼寫或改用完整英文姓名。';
       }
-
-      // 點擊查詢
       document.getElementById('searchBtn').onclick = () => {
         const inputName = document.getElementById('nameInput').value;
         const item = findByName(inputName);
         if (item) show(item);
         else document.getElementById('error').textContent = '找不到這個名字，請確認拼寫或改用完整英文姓名。';
       };
-
-      // Enter 快速搜尋
       document.getElementById('nameInput').addEventListener('keyup', (e) => {
         if (e.key === 'Enter') document.getElementById('searchBtn').click();
       });
-
-      // 返回
       document.getElementById('backBtn').onclick = back;
     }
     init();
