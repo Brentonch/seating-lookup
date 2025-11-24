@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>2025 Strategic Off Site 組別查詢</title>
-  <meta name="description" content="輸入英文姓名即可看到你的組別。">
+  <meta name="description" content="輸入英文姓名即可看到你的部門與組別，並查看座位圖。">
   <style>
     :root { --primary:#2b7cff; --bg:#f6f7f9; --card:#fff; --text:#111; --muted:#666; --danger:#b00020; }
     * { box-sizing: border-box; }
@@ -33,7 +33,7 @@
   <div class="container">
     <div class="card">
       <h1>2025 Strategic Off Site 組別查詢</h1>
-      <p class="sub">輸入「英文姓名」即可看到你的組別。</p>
+      <p class="sub">輸入「英文姓名」即可看到你的部門與組別。</p>
 
       <div id="searchSection" role="form" aria-label="查詢表單">
         <label for="nameInput">英文姓名</label>
@@ -49,11 +49,10 @@
       <div id="result" style="display:none;" aria-live="polite">
         <div class="fields">
           <div class="field name" id="rName"></div>
+          <div class="field"><span class="label">部門：</span><span id="rDept"></span></div>
           <div class="field"><span class="label">組別：</span><span id="rGroup"></span></div>
 
-          <!-- 單一張座位圖放在結果最下方。
-               你在 GitHub 上的檔名是 seating-map.png（assets/seating-map.png），
-               所以下面 src 與 href 都使用 .png，大小寫要完全一致。 -->
+          <!-- 單一張座位圖：請確認 GitHub 路徑為 assets/seating-map.png（副檔名大小寫一致） -->
           <div class="field" style="margin-top:12px;">
             <span class="label">座位圖：</span>
             <a href="./assets/seating-map.png" target="_blank" rel="noopener">
@@ -71,6 +70,7 @@
   </div>
 
   <script>
+    // 正規化（大小寫不敏感、合併多重空白）
     function normalize(s){ return (s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
     let data = [];
 
@@ -78,10 +78,17 @@
       try {
         const res = await fetch('./data/employees.json', { cache: 'no-store' });
         data = await res.json();
+
+        // datalist 建議
         const list = document.getElementById('nameList');
         list.innerHTML = '';
-        const names = [...new Set((data || []).map(x => x.Name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-        names.forEach(n => { const opt = document.createElement('option'); opt.value = n; list.appendChild(opt); });
+        const names = [...new Set((data || []).map(x => x.Name).filter(Boolean))]
+          .sort((a,b)=>a.localeCompare(b));
+        names.forEach(n => {
+          const opt = document.createElement('option');
+          opt.value = n;
+          list.appendChild(opt);
+        });
       } catch (e) {
         document.getElementById('error').textContent = '資料載入失敗，請重新整理或聯絡工作人員。';
         document.getElementById('searchBtn').disabled = true;
@@ -91,6 +98,8 @@
     function findByName(inputName) {
       const key = normalize(inputName);
       if (!key) return null;
+
+      // 完全匹配 → 開頭匹配 → 包含匹配
       let item = data.find(x => normalize(x.Name) === key);
       if (!item) item = data.find(x => normalize(x.Name).startsWith(key));
       if (!item) item = data.find(x => normalize(x.Name).includes(key));
@@ -98,8 +107,10 @@
     }
 
     function show(item) {
-      document.getElementById('rName').textContent = item?.Name || '';
+      document.getElementById('rName').textContent  = item?.Name || '';
+      document.getElementById('rDept').textContent  = item?.Department || '';
       document.getElementById('rGroup').textContent = (item?.Group != null) ? String(item.Group) : '';
+
       document.getElementById('searchSection').style.display = 'none';
       document.getElementById('result').style.display = 'block';
     }
@@ -114,6 +125,7 @@
     async function init() {
       await loadData();
 
+      // 支援 ?name= 參數
       const params = new URLSearchParams(location.search);
       const paramName = params.get('name');
       if (paramName) {
