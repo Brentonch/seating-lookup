@@ -9,9 +9,9 @@
     :root { --primary:#2b7cff; --bg:#f6f7f9; --card:#fff; --text:#111; --muted:#666; --danger:#b00020; }
     * { box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, "Segoe UI", Arial, "Noto Sans TC", "Microsoft JhengHei", sans-serif; margin: 24px; background: var(--bg); color: var(--text); }
-    .container { max-width: 640px; margin: 0 auto; }
+    .container { max-width: 720px; margin: 0 auto; }
     .card { background: var(--card); border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 20px; }
-    h1 { font-size: 22px; margin: 0 0 12px; }
+    h1 { font-size: 24px; margin: 0 0 12px; }
     p.sub { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
     label { display:block; margin-bottom:8px; font-weight:600; }
     input { width:100%; padding:12px; font-size:16px; margin-bottom:12px; border:1px solid #cbd5e1; border-radius:8px; }
@@ -25,6 +25,7 @@
     .hint { font-size:13px; color: var(--muted); }
     .actions { margin-top: 12px; display: flex; gap: 8px; }
     .secondary { background:#444; }
+    .map-bottom { width:100%; max-width:720px; height:auto; border:1px solid #e5e7eb; border-radius:8px; }
     footer { margin-top: 16px; color: var(--muted); font-size: 12px; text-align: center; }
   </style>
 </head>
@@ -48,12 +49,15 @@
       <div id="result" style="display:none;" aria-live="polite">
         <div class="fields">
           <div class="field name" id="rName"></div>
-          <!-- 若只顯示組別，可將「部門」這行刪除或註解 -->
-          <!-- <div class="field"><span class="label">部門：</span><span id="rDept"></span></div> -->
           <div class="field"><span class="label">組別：</span><span id="rGroup"></span></div>
-          <!-- 若未來加上座位欄位，解除下列註解並在 show() 中賦值
-          <div class="field" id="rowTable"><span class="label">桌次：</span><span id="rTable"></span></div>
-          -->
+
+          <!-- 單一張座位圖：放在結果最下方 -->
+          <div class="field" style="margin-top:12px;">
+            <span class="label">座位圖：</span>
+            <a href="./assets/seating-map.jpg" target="_blank" rel="noopener">
+              <img src="./assets/seating-map.jpg" alt="座位圖" class="map-bottom">
+            </a>
+          </div>
         </div>
         <div class="actions">
           <button id="backBtn" class="secondary">返回</button>
@@ -61,7 +65,7 @@
       </div>
     </div>
 
-    <footer>資料來源：/data/employees.json（欄位 Name / Department / Group）。更新後請重新整理以取得最新名單。</footer>
+    <footer>資料來源：/data/employees.json（欄位 Name / Department / Group）。如未顯示新圖，請重新整理。</footer>
   </div>
 
   <script>
@@ -93,11 +97,7 @@
 
     function show(item) {
       document.getElementById('rName').textContent = item?.Name || '';
-      // 若保留部門顯示，取消下行註解
-      // document.getElementById('rDept').textContent = item?.Department || '';
       document.getElementById('rGroup').textContent = (item?.Group != null) ? String(item.Group) : '';
-      const tableRow = document.getElementById('rowTable');
-      if (tableRow) tableRow.style.display = 'none';
       document.getElementById('searchSection').style.display = 'none';
       document.getElementById('result').style.display = 'block';
     }
@@ -111,6 +111,7 @@
 
     async function init() {
       await loadData();
+
       const params = new URLSearchParams(location.search);
       const paramName = params.get('name');
       if (paramName) {
@@ -118,15 +119,18 @@
         if (item) show(item);
         else document.getElementById('error').textContent = '找不到這個名字，請確認拼寫或改用完整英文姓名。';
       }
+
       document.getElementById('searchBtn').onclick = () => {
         const inputName = document.getElementById('nameInput').value;
         const item = findByName(inputName);
         if (item) show(item);
         else document.getElementById('error').textContent = '找不到這個名字，請確認拼寫或改用完整英文姓名。';
       };
+
       document.getElementById('nameInput').addEventListener('keyup', (e) => {
         if (e.key === 'Enter') document.getElementById('searchBtn').click();
       });
+
       document.getElementById('backBtn').onclick = back;
     }
     init();
