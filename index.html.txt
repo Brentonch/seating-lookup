@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seating Lookup</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 24px; background:#f8f9fa; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 20px; max-width: 520px; margin:auto; background:#fff; }
+    h1 { font-size: 22px; margin: 0 0 12px; }
+    label { display:block; margin-bottom:8px; font-weight:600; }
+    input { width:100%; padding:12px; font-size:16px; margin-bottom:12px; border:1px solid #ccc; border-radius:8px; }
+    button { padding:10px 16px; font-size:16px; border:none; border-radius:8px; background:#2b7cff; color:#fff; cursor:pointer; }
+    button:disabled { background:#9fb9ff; cursor:not-allowed; }
+    .field { margin:8px 0; }
+    .name { font-weight: 700; font-size: 20px; }
+    .notfound { color: #b00020; margin-top: 8px; }
+    .hint { font-size:13px;color:#666; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Seating Lookup</h1>
+    <div id="searchSection">
+      <label for="nameInput">Enter your English name</label>
+      <input id="nameInput" placeholder="e.g., John Chen" />
+      <button id="searchBtn">Search</button>
+      <div class="hint">Tip: Use your official English name format (first name + last name).</div>
+      <div id="error" class="notfound"></div>
+    </div>
+
+    <div id="result" style="display:none;">
+      <div class="field name" id="rName"></div>
+      <div class="field"><strong>Department:</strong> <span id="rDept"></span></div>
+      <div class="field"><strong>Group:</strong> <span id="rGroup"></span></div>
+      <div class="field"><strong>Table:</strong> <span id="rTable"></span></div>
+      <button id="backBtn" style="margin-top:12px;background:#444;">Back</button>
+    </div>
+  </div>
+
+  <script>
+    const toKey = s => (s || '').trim().toLowerCase();
+    let data = [];
+
+    async function loadData() {
+      try {
+        const res = await fetch('./data/employees.json', { cache: 'no-store' });
+        data = await res.json();
+      } catch (e) {
+        document.getElementById('error').textContent = 'Failed to load data. Please refresh or contact staff.';
+        document.getElementById('searchBtn').disabled = true;
+      }
+    }
+
+    function findByName(name) {
+      const key = toKey(name);
+      // Exact match first, then startsWith for tolerance
+      let item = data.find(x => toKey(x.englishName) === key);
+      if (!item) item = data.find(x => toKey(x.englishName).startsWith(key));
+      return item;
+    }
+
+    function show(item) {
+      document.getElementById('rName').textContent = item.englishName;
+      document.getElementById('rDept').textContent = item.department;
+      document.getElementById('rGroup').textContent = item.group;
+      document.getElementById('rTable').textContent = item.tableLocation;
+      document.getElementById('searchSection').style.display = 'none';
+      document.getElementById('result').style.display = 'block';
+    }
+
+    function back() {
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('searchSection').style.display = 'block';
+      document.getElementById('error').textContent = '';
+      document.getElementById('nameInput').focus();
+    }
+
+    async function init() {
+      await loadData();
+      document.getElementById('searchBtn').onclick = () => {
+        const inputName = document.getElementById('nameInput').value;
+        const item = findByName(inputName);
+        if (item) show(item);
+        else document.getElementById('error').textContent = 'Name not found. Please check spelling or try full name.';
+      };
+      document.getElementById('backBtn').onclick = back;
+      document.getElementById('nameInput').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') document.getElementById('searchBtn').click();
+      });
+    }
+    init();
+  </script>
+</body>
+</html>
